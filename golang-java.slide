@@ -1,0 +1,379 @@
+Introduction à Go
+Février 2016
+
+Sylvain Wallez
+IoT technical leader
+OVH
+@bluxte
+sylvain@bluxte.net
+
+* Au menu
+
+- A propos...
+- Origines de Go, qui l'utilise ?
+- Comparaison de Go et Java
+- Exemples
+- Programmation concurrente
+- La boîte à outils de Go
+
+Adapté de "[[http://talks.golang.org/2015/go-for-java-programmers.slide][Go for Java Programmers]]" de Sameer Ajmani
+
+* A propos de Sylvain Wallez...
+
+.image golang-java/about.png 500 _
+
+* Origines de Go
+
+"Go is an open source programming language that makes it easy to build simple, reliable, and efficient software." -- [[http://golang.org]]
+
+Créé par Google à partir de 2007 pour des besoins internes :
+
+- logiciels serveurs, architectures massivement distribuées (10⁶⁺ machines)
+- adapté à des grands projets (5000+ développeurs)
+
+Open source depuis 2009 avec une communauté très active
+
+Langage stable depuis la version 1 début 2012
+
+Actuellement : Go 1.6
+
+* Les créateurs
+
+- Robert Griesemer : V8, Java HotSpot
+- Rob Pike : Unix team, créateur de UTF-8
+- Ken Thompson : inventeur du langage B, ancètre du C
+
+* Utilisations de Go chez Google
+
+Des milliers de développeurs, des millions de lignes de code.
+
+Exemples publics :
+
+- Proxy SPDY pour Chrome sur les mobiles
+- Serveur de téléchargement pour Chrome, ChromeOS, Android SDK, Earth, etc.
+- Load balancer Vitess pour MySQL (YouTube)
+- Kubernetes, orchestrateur de cluster Docker
+
+La cible initiale est les services réseaux, mais c'est un langage généraliste.
+
+* Qui utilise Go ?
+
+.link http://golang.org/wiki/GoUsers
+
+Apcera, Bitbucket, bitly, Canonical, CloudFlare, Core OS, Digital Ocean, Docker, Dropbox, Facebook, Getty Images, GitHub, Hashicorp, Heroku, InfluxDB, Iron.io, Kubernetes, Medium, MongoDB services, Mozilla services, New York Times, pool.ntp.org, SmugMug, SoundCloud, Stripe, Square, Thomson Reuters, Tumblr...
+
+.image golang-java/bus.jpg 300 _
+
+* Qui utilise Go ?
+
+OVH !
+
+Le "Time Series as a Service" collecte >2,5M métriques/seconde
+
+Nouvelle génération des services internes majoritairement en Go :
+- facturation
+- services d'API
+- outils de déploiement (Docker & co)
+- etc.
+
+* Comparaison de Go et Java
+
+* Beaucoup de points communs
+
+- Descendance de C (langage impératif, accolades)
+- Typage statique
+- Garbage collected
+- Memory safe (références nulles, contrôle des bornes à l'exécution)
+- Les variables sont toujours initialisées (zero/nil/false)
+- Méthodes
+- Interfaces
+- Assertions sur les types (`instanceof`)
+- Reflection et introspection
+
+* Go est (évidemment) différent
+
+- Compilation en exécutable natif. Pas de VM
+- Link statique, exécutable autosuffisant
+- Contrôle sur l'organisation mémoire
+- Les fonctions sont des valeurs
+- String est un type primitif, représenté en UTF-8
+- Maps et array/slices : types primitifs
+- Goroutines et channels : concurrence définie dans le langage
+
+* Beaucoup d'omissions volontaires
+
+- Pas de classes (mais des interfaces)
+- Pas de constructeurs
+- Pas d'héritage (mais composition)
+- Pas de `final`
+- Pas d'exceptions
+- Pas de types génériques
+
+* Pourquoi Go fait ces omissions ?
+
+Volonté des créateurs du langage :
+
+- La clarté du code est primordiale.
+- En lisant du code, comprendre ce qu'il fait doit être clair immédiatement.
+- En écrivant du code, savoir comment l'écrire doit être clair immédiatement.
+- Un peu de redondance vaut parfois mieux qu'une factorisation obscure.
+
+Pour plus d'infos :
+
+- [[http://commandcenter.blogspot.com/2012/06/less-is-exponentially-more.html][Less is exponentially more (Pike, 2012)]]
+- [[http://talks.golang.org/2012/splash.article][Go at Google: Language Design in the Service of Software Engineering (Pike, 2012)]]
+
+* Exemples
+
+* Go, une syntaxe familière quand on vient de C ou Java
+
+Main.java
+
+.code golang-java/hello/Main.java
+
+hello.go
+
+.play golang-java/hello/hello.go
+
+* Hello, web server
+
+.play golang-java/hello/server.go
+
+Les types viennent *après* les noms.
+Les noms Capitalisés sont *publics*. Les autres noms sont *privés* (package).
+Il y a des types *pointeurs*.
+
+* Exemple : recherche sur Google
+
+.image golang-java/frontend-screenshot.png _ 1000
+
+.play golang-java/frontend.go /func main/,/func handleSearch/
+
+* Valider la requête
+
+.code golang-java/frontend.go /func handleSearch/,/ENDQUERY/
+
+`query`:=`req.FormValue("q")` initialise une *nouvelle*variable* `query` du type de
+l'expression (`string`).
+
+`FormValue` est une *méthode* sur le type `*http.Request` :
+
+  package http
+  type Request struct {...}
+  func (r *Request) FormValue(key string) string {...}
+
+* Collecter les résultats
+
+.code golang-java/frontend.go /Run the Google search/,/ENDSEARCH/
+
+`Search` renvoie *2*valeurs* : une "slice" de résultats, et une erreur.
+
+  func Search(query string) ([]Result, error) {...}
+
+Les résultats sont valides uniquement si l'erreur est `nil`
+
+  type error interface {
+      Error() string // a useful human-readable error message
+  }
+
+Les erreurs peuvent contenir des infos complémentaires, accessibles via des cast ("type assertion").
+
+* Afficher les résultats
+
+.code golang-java/frontend.go /Render the/,/ENDRENDER/
+
+`resultsTemplate.Execute` produit du HTML et l'écrit dans un `io.Writer` :
+
+  type Writer interface {
+          Write(p []byte) (n int, err error)
+  }
+
+`http.ResponseWriter` implémente l'interface `io.Writer`.
+
+* Les templates HTML
+
+- Dans librairie standard, similaire à Mustache
+- Paramètres : maps et objets Go
+
+.play golang-java/frontend.go /A Result contains/,/\)\)/
+
+* Envoyer une requête à l'API Google Search
+
+.code golang-java/frontend.go /func Search/,/resp.Body.Close/
+
+L'instruction `defer`resp.Body.Close` est équivalente au `finally` Java
+
+* Parser la réponse JSON dans une structure Go
+
+.code golang-java/frontend.go /https:\/\/developers.google.com\/web-search\/docs/,/^}/
+
+* Terminé pour le front-end !
+
+Nous n'avons utilisé que la librairie standard :
+
+  import (
+  	"encoding/json"
+  	"fmt"
+  	"html/template"
+  	"log"
+  	"net/http"
+  	"net/url"
+  	"time"
+  )
+
+Les serveurs Go tiennent la charge : chaque requête tourne dans une _goroutine_ séparée.
+
+Goroutine ?
+
+* L'exécution concurrente en Go
+
+* Communicating Sequential Processes (Tony Hoare, 1978)
+
+Les programmes concurrents sont structurés en :
+
+- processus indépendants
+- qui s'exécutent séquentiellement
+- et communiquent en échangeant des messages.
+
+L'exécution séquentielle est facile à comprendre. Pas les callbacks !
+
+Les primitives Go : goroutines, channels, et l'instruction `select`.
+
+* Goroutines
+
+Les goroutines sont comme des threads légers.
+
+Elles démarrent avec des petites piles (stack) qui sont retaillées selon les besoins.
+
+Un programme Go peut avoir des milliers de goroutines actives.
+
+On démarre une goroutine avec l'instruction `go` :
+
+  doSomething()
+  go doSomethingElse(arg1, arg2) // Forked in a separate goroutine
+  doAnotherThing()
+
+Le runtime Go ordonnance les goroutines sur des threads de l'OS
+
+Une goroutine bloquée ne bloque pas un thread !
+
+* Channels
+
+Le canal de communication entre les goroutines.
+
+  c := make(chan string)
+
+  // goroutine 1
+  go func() {
+    c <- "hello!"
+  }()
+
+  // goroutine 2
+  go func() {
+    s := <-c
+    fmt.Println(s) // "hello!"
+  }()
+
+* Select
+
+Un `select` bloque jusqu'à ce que envoi ou réception soient possibles.
+
+  select {
+  case n := <-in:
+    fmt.Println("received", n)    
+  case out <- v:
+    fmt.Println("sent", v)
+  }
+
+Le `default` permet de ne pas bloquer.
+
+  select {
+  case out <- v:
+    fmt.Println("sent", v)
+  default:
+    fmt.Println("No message, moving on")
+  }
+  
+* Exemple : Recherche Google (côté serveur)
+
+A partir de mots-clés, renvoyer une page de résultats :
+
+- faire une recherche sur le Web 
+- faire une recherche sur Youtube
+- faire une recherche sur Google Maps
+- faire une recherche dans les News, etc
+- sélectionner des pubs (faut bien vivre !)
+- assembler les résultats (et les pubs)
+
+* Un Google fake en 6 lignes
+
+On simule une recherche par un délai aléatoire de 100 ms maximum.
+
+.code golang-java/google-serial.go /START2/,/STOP2/
+
+`fakeSearch` est une fonction qui retourne une fonction
+
+* Google Search : le main()
+
+.play golang-java/google-serial.go /func.main/,/}/
+
+* Google Search (séquentiel)
+
+La fonction `GoogleSearch` prend une chaîne de recherche, et renvoie une _slice_ de `Results` (des string).
+
+Lance sequentiellement les recherches Web, Image, et Video, et ajoute leurs résultats à la _slice_ de résultats.
+
+.play golang-java/google-serial.go /START1/,/STOP1/
+
+Temps total = somme des temps individuels
+
+* Google Search (parallèle)
+
+On lance les recherches en parallèle, et on attend tous les résultats.
+
+.play golang-java/google-parallel.go /Google/,/^}/
+
+Les `func` anonymes sont des closures sur `query` and `c`.
+
+Temps total = temps de la requête la plus longue
+
+* Google Search (parallèle + timeout)
+
+On n'attend pas les serveurs qui traînent.
+
+.play golang-java/google-timeout.go /START/,/STOP/
+
+Pas de lock, pas de synchronized, pas de callbacks !
+
+* Les outils
+
+* Go : l'outillage
+
+La commande 'go' :
+
+- [[http://play.golang.org/p/GPqra77cBK][go fmt]] : formatage selon les règles canoniques
+- go vet : "checkstyle" par les devs de Go
+- go doc : javadoc-like. Tout le Go open source sur [[http://godoc.org][godoc.org]]
+- go get : téléchargement/installation de packages
+
+IDE : plugins IntelliJ, Eclipse, Sublime, Vim...
+
+Compilation cross-platform (Yay Raspberry Pi !)
+
+Compilation pour mobiles (applis ou librairies Android et iOS)
+
+* Quelques liens
+
+Tutoriel interactif
+
+.link http://tour.golang.org
+
+Effective Go : un _must_read_ pour aller plus loin
+
+.link https://golang.org/doc/effective_go.html
+
+Collection de liens, de trucs et astuces, etc.
+
+.link http://golang.org/wiki/Learn
+
+
