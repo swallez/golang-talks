@@ -1,9 +1,9 @@
 Introduction à Go
-Février 2016
+Novembre 2016
 
 Sylvain Wallez
-IoT technical leader
-OVH
+Software Engineer, Elastic Cloud
+Elastic.co
 @bluxte
 sylvain@bluxte.net
 
@@ -18,7 +18,7 @@ sylvain@bluxte.net
 
 Adapté de "[[http://talks.golang.org/2015/go-for-java-programmers.slide][Go for Java Programmers]]" de Sameer Ajmani
 
-* A propos de Sylvain Wallez...
+* About me...
 
 .image golang-java/about.png 500 _
 
@@ -35,7 +35,7 @@ Open source depuis 2009 avec une communauté très active
 
 Langage stable depuis la version 1 début 2012
 
-Actuellement : Go 1.6
+Actuellement : Go 1.7.3
 
 * Les créateurs
 
@@ -66,15 +66,13 @@ Apcera, Bitbucket, bitly, Canonical, CloudFlare, Core OS, Digital Ocean, Docker,
 
 * Qui utilise Go ?
 
-OVH !
-
-Le "Time Series as a Service" collecte >2,5M métriques/seconde
-
-Nouvelle génération des services internes majoritairement en Go :
-- facturation
-- services d'API
+OVH (job précédent):
+- nouvelle génération de services internes
 - outils de déploiement (Docker & co)
-- etc.
+- Kafka as a Service, Time Series as a Service
+
+Elastic (job actuel):
+- les Beats, agents de collectes de métrique
 
 * Comparaison de Go et Java
 
@@ -375,5 +373,10 @@ Effective Go : un _must_read_ pour aller plus loin
 Collection de liens, de trucs et astuces, etc.
 
 .link http://golang.org/wiki/Learn
+
+Cette présentation
+
+.link https://github.com/swallez/golang-talks/
+
 
 
